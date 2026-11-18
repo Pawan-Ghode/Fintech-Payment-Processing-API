@@ -1,0 +1,90 @@
+package com.pawan.fintech.payment.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(
+    name = "payments",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_payment_reference",
+            columnNames = "payment_reference"
+        )
+    },
+    indexes = {
+        @Index(
+            name = "idx_payment_order_reference",
+            columnList = "order_reference"
+        )
+    }
+)
+public class Payment {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(
+        name = "payment_reference",
+        nullable = false,
+        unique = true,
+        length = 36
+    )
+    private String paymentReference;
+
+    @Column(
+        name = "order_reference",
+        nullable = false,
+        length = 100
+    )
+    private String orderReference;
+
+    @Column(
+        nullable = false,
+        precision = 19,
+        scale = 2
+    )
+    private BigDecimal amount;
+
+    @Column(
+        nullable = false,
+        length = 3
+    )
+    private String currency;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private PaymentStatus status;
+
+    @Column(
+        name = "created_at",
+        nullable = false,
+        updatable = false
+    )
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    protected Payment() {
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (paymentReference == null) {
+            paymentReference = UUID.randomUUID().toString();
+        }
+
+        Instant now = Instant.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
+}
