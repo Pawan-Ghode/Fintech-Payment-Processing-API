@@ -1,6 +1,7 @@
 package com.pawan.fintech.payment.entity;
 
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -42,17 +43,10 @@ public class Payment {
     )
     private String orderReference;
 
-    @Column(
-        nullable = false,
-        precision = 19,
-        scale = 2
-    )
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(
-        nullable = false,
-        length = 3
-    )
+    @Column(nullable = false, length = 3)
     private String currency;
 
     @Enumerated(EnumType.STRING)
@@ -72,6 +66,17 @@ public class Payment {
     protected Payment() {
     }
 
+    public Payment(
+            String orderReference,
+            BigDecimal amount,
+            String currency
+    ) {
+        this.orderReference = orderReference;
+        this.amount = amount;
+        this.currency = currency;
+        this.status = PaymentStatus.CREATED;
+    }
+
     @PrePersist
     protected void onCreate() {
         if (paymentReference == null) {
@@ -86,5 +91,37 @@ public class Payment {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = Instant.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getPaymentReference() {
+        return paymentReference;
+    }
+
+    public String getOrderReference() {
+        return orderReference;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public PaymentStatus getStatus() {
+        return status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }
