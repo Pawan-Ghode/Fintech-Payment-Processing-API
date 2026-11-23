@@ -31,7 +31,6 @@ public class Payment {
     @Column(
         name = "payment_reference",
         nullable = false,
-        unique = true,
         length = 36
     )
     private String paymentReference;
