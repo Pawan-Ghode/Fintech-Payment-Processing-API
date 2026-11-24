@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 public class PaymentController {
@@ -35,5 +37,41 @@ public class PaymentController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentById(
+            @PathVariable Long id) {
+
+        PaymentResponse payment =
+                paymentService.getPaymentById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Payment retrieved successfully", payment)
+        );
+    }
+
+    @GetMapping("/reference/{paymentReference}")
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentByReference(
+            @PathVariable String paymentReference) {
+
+        PaymentResponse payment =
+                paymentService.getPaymentByReference(paymentReference);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Payment retrieved successfully", payment)
+        );
+    }
+
+    @GetMapping("/order/{orderReference}")
+    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getPaymentsByOrderReference(
+            @PathVariable String orderReference) {
+
+        List<PaymentResponse> payments =
+                paymentService.getPaymentsByOrderReference(orderReference);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Payments retrieved successfully", payments)
+        );
     }
 }
