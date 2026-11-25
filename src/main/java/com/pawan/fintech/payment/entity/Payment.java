@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -13,6 +15,10 @@ import java.util.UUID;
         @UniqueConstraint(
             name = "uk_payment_reference",
             columnNames = "payment_reference"
+        ),
+        @UniqueConstraint(
+            name = "uk_payment_idempotency_key",
+            columnNames = "idempotency_key"
         )
     },
     indexes = {
@@ -34,6 +40,12 @@ public class Payment {
         length = 36
     )
     private String paymentReference;
+
+    @Column(
+        name = "idempotency_key",
+        length = 100
+    )
+    private String idempotencyKey;
 
     @Column(
         name = "order_reference",
@@ -61,6 +73,13 @@ public class Payment {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @OneToMany(
+        mappedBy = "payment",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    private List<PaymentAttempt> attempts = new ArrayList<>();
 
     protected Payment() {
     }
@@ -100,6 +119,14 @@ public class Payment {
         return paymentReference;
     }
 
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
+
     public String getOrderReference() {
         return orderReference;
     }
@@ -122,5 +149,14 @@ public class Payment {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public List<PaymentAttempt> getAttempts() {
+        return attempts;
+    }
+
+    public void addAttempt(PaymentAttempt attempt) {
+        attempts.add(attempt);
+        attempt.setPayment(this);
     }
 }

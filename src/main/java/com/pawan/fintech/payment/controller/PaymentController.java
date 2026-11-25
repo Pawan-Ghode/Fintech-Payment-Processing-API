@@ -23,10 +23,14 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
-            @Valid @RequestBody CreatePaymentRequest request) {
+            @Valid @RequestBody CreatePaymentRequest request,
+            @RequestHeader(
+                    name = "Idempotency-Key",
+                    required = false
+            ) String idempotencyKey) {
 
         PaymentResponse paymentResponse =
-                paymentService.createPayment(request);
+                paymentService.createPayment(request, idempotencyKey);
 
         ApiResponse<PaymentResponse> response =
                 ApiResponse.success(

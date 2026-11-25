@@ -21,13 +21,56 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentResponse createPayment(CreatePaymentRequest request) {
+    public PaymentResponse createPayment(
+            CreatePaymentRequest request,
+            String idempotencyKey
+    ) {
+
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Idempotency-Key header is required"
+            );
+        }
+
+        idempotencyKey = idempotencyKey.trim();
+
+        if (idempotencyKey.length() > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Idempotency-Key cannot exceed 100 characters"
+            );
+        }
+
+        var existingPayment = paymentRepository
+                .findByIdempotencyKey(idempotencyKey);
+
+        if (existingPayment.isPresent()) {
+
+            Payment payment = existingPayment.get();
+
+            boolean sameRequest =
+                    payment.getOrderReference().equals(request.orderReference())
+                    && payment.getAmount().compareTo(request.amount()) == 0
+                    && payment.getCurrency().equals(request.currency());
+
+            if (!sameRequest) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Idempotency key was already used with a different request"
+                );
+            }
+
+            return mapToResponse(payment);
+        }
 
         Payment payment = new Payment(
                 request.orderReference(),
                 request.amount(),
                 request.currency()
         );
+
+        payment.setIdempotencyKey(idempotencyKey);
 
         Payment savedPayment = paymentRepository.save(payment);
 
