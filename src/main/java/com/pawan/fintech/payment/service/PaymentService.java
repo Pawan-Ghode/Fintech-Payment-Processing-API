@@ -3,6 +3,7 @@ package com.pawan.fintech.payment.service;
 import com.pawan.fintech.payment.dto.request.CreatePaymentRequest;
 import com.pawan.fintech.payment.dto.response.PaymentResponse;
 import com.pawan.fintech.payment.entity.Payment;
+import com.pawan.fintech.payment.entity.PaymentStatus;
 import com.pawan.fintech.payment.repository.PaymentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,6 @@ public class PaymentService {
             CreatePaymentRequest request,
             String idempotencyKey
     ) {
-
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -42,11 +42,9 @@ public class PaymentService {
             );
         }
 
-        var existingPayment = paymentRepository
-                .findByIdempotencyKey(idempotencyKey);
+        var existingPayment = paymentRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingPayment.isPresent()) {
-
             Payment payment = existingPayment.get();
 
             boolean sameRequest =
@@ -72,14 +70,35 @@ public class PaymentService {
 
         payment.setIdempotencyKey(idempotencyKey);
 
-        Payment savedPayment = paymentRepository.save(payment);
+        return mapToResponse(paymentRepository.save(payment));
+    }
 
-        return mapToResponse(savedPayment);
+    @Transactional
+    public PaymentResponse updatePaymentStatus(
+            String paymentReference,
+            PaymentStatus newStatus
+    ) {
+        Payment payment = paymentRepository
+                .findByPaymentReference(paymentReference)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Payment not found with reference: " + paymentReference
+                ));
+
+        try {
+            payment.transitionTo(newStatus);
+        } catch (IllegalStateException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    exception.getMessage()
+            );
+        }
+
+        return mapToResponse(payment);
     }
 
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentById(Long id) {
-
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -91,7 +110,6 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentByReference(String paymentReference) {
-
         Payment payment = paymentRepository
                 .findByPaymentReference(paymentReference)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -103,9 +121,7 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public List<PaymentResponse> getPaymentsByOrderReference(
-            String orderReference) {
-
+    public List<PaymentResponse> getPaymentsByOrderReference(String orderReference) {
         return paymentRepository.findByOrderReference(orderReference)
                 .stream()
                 .map(this::mapToResponse)
@@ -113,7 +129,6 @@ public class PaymentService {
     }
 
     private PaymentResponse mapToResponse(Payment payment) {
-
         return new PaymentResponse(
                 payment.getPaymentReference(),
                 payment.getOrderReference(),

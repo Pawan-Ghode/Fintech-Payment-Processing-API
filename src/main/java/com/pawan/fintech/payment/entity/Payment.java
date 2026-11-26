@@ -12,20 +12,11 @@ import java.util.UUID;
 @Table(
     name = "payments",
     uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_payment_reference",
-            columnNames = "payment_reference"
-        ),
-        @UniqueConstraint(
-            name = "uk_payment_idempotency_key",
-            columnNames = "idempotency_key"
-        )
+        @UniqueConstraint(name = "uk_payment_reference", columnNames = "payment_reference"),
+        @UniqueConstraint(name = "uk_payment_idempotency_key", columnNames = "idempotency_key")
     },
     indexes = {
-        @Index(
-            name = "idx_payment_order_reference",
-            columnList = "order_reference"
-        )
+        @Index(name = "idx_payment_order_reference", columnList = "order_reference")
     }
 )
 public class Payment {
@@ -34,24 +25,13 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(
-        name = "payment_reference",
-        nullable = false,
-        length = 36
-    )
+    @Column(name = "payment_reference", nullable = false, length = 36)
     private String paymentReference;
 
-    @Column(
-        name = "idempotency_key",
-        length = 100
-    )
+    @Column(name = "idempotency_key", length = 100)
     private String idempotencyKey;
 
-    @Column(
-        name = "order_reference",
-        nullable = false,
-        length = 100
-    )
+    @Column(name = "order_reference", nullable = false, length = 100)
     private String orderReference;
 
     @Column(nullable = false, precision = 19, scale = 2)
@@ -64,11 +44,7 @@ public class Payment {
     @Column(nullable = false, length = 20)
     private PaymentStatus status;
 
-    @Column(
-        name = "created_at",
-        nullable = false,
-        updatable = false
-    )
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
@@ -84,15 +60,33 @@ public class Payment {
     protected Payment() {
     }
 
-    public Payment(
-            String orderReference,
-            BigDecimal amount,
-            String currency
-    ) {
+    public Payment(String orderReference, BigDecimal amount, String currency) {
         this.orderReference = orderReference;
         this.amount = amount;
         this.currency = currency;
         this.status = PaymentStatus.CREATED;
+    }
+
+    public void transitionTo(PaymentStatus newStatus) {
+        boolean allowed = switch (status) {
+            case CREATED ->
+                    newStatus == PaymentStatus.PROCESSING
+                    || newStatus == PaymentStatus.CANCELLED;
+
+            case PROCESSING ->
+                    newStatus == PaymentStatus.SUCCESS
+                    || newStatus == PaymentStatus.FAILED;
+
+            case SUCCESS, FAILED, CANCELLED -> false;
+        };
+
+        if (!allowed) {
+            throw new IllegalStateException(
+                    "Invalid payment status transition: " + status + " -> " + newStatus
+            );
+        }
+
+        this.status = newStatus;
     }
 
     @PrePersist
