@@ -89,6 +89,25 @@ public class Payment {
         this.status = newStatus;
     }
 
+    public void addAttempt(PaymentAttempt attempt) {
+        attempts.add(attempt);
+        attempt.setPayment(this);
+    }
+
+    public void updateLatestAttemptStatus(String newStatus) {
+        if (attempts.isEmpty()) {
+            addAttempt(new PaymentAttempt(1, newStatus));
+            return;
+        }
+
+        PaymentAttempt latestAttempt = attempts.stream()
+                .max((first, second) ->
+                        first.getAttemptNumber().compareTo(second.getAttemptNumber()))
+                .orElseThrow();
+
+        latestAttempt.setStatus(newStatus);
+    }
+
     @PrePersist
     protected void onCreate() {
         if (paymentReference == null) {
@@ -147,10 +166,5 @@ public class Payment {
 
     public List<PaymentAttempt> getAttempts() {
         return attempts;
-    }
-
-    public void addAttempt(PaymentAttempt attempt) {
-        attempts.add(attempt);
-        attempt.setPayment(this);
     }
 }

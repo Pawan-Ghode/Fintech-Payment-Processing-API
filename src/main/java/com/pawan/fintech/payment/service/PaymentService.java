@@ -3,6 +3,7 @@ package com.pawan.fintech.payment.service;
 import com.pawan.fintech.payment.dto.request.CreatePaymentRequest;
 import com.pawan.fintech.payment.dto.response.PaymentResponse;
 import com.pawan.fintech.payment.entity.Payment;
+import com.pawan.fintech.payment.entity.PaymentAttempt;
 import com.pawan.fintech.payment.entity.PaymentStatus;
 import com.pawan.fintech.payment.repository.PaymentRepository;
 import org.springframework.http.HttpStatus;
@@ -70,6 +71,9 @@ public class PaymentService {
 
         payment.setIdempotencyKey(idempotencyKey);
 
+        // Create the first attempt along with the payment.
+        payment.addAttempt(new PaymentAttempt(1, PaymentStatus.CREATED.name()));
+
         return mapToResponse(paymentRepository.save(payment));
     }
 
@@ -93,6 +97,9 @@ public class PaymentService {
                     exception.getMessage()
             );
         }
+
+        // Keep the current attempt status synchronized with payment status.
+        payment.updateLatestAttemptStatus(newStatus.name());
 
         return mapToResponse(payment);
     }

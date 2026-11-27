@@ -60,4 +60,8 @@ public class PaymentAttempt {
     public void setPayment(Payment payment) {
         this.payment = payment;
     }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }
