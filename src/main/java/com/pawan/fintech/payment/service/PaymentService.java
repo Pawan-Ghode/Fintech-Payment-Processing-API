@@ -1,6 +1,7 @@
 package com.pawan.fintech.payment.service;
 
 import com.pawan.fintech.payment.dto.request.CreatePaymentRequest;
+import com.pawan.fintech.payment.dto.response.PaymentAttemptResponse;
 import com.pawan.fintech.payment.dto.response.PaymentResponse;
 import com.pawan.fintech.payment.entity.Payment;
 import com.pawan.fintech.payment.entity.PaymentAttempt;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -71,7 +73,6 @@ public class PaymentService {
 
         payment.setIdempotencyKey(idempotencyKey);
 
-        // Create the first attempt along with the payment.
         payment.addAttempt(new PaymentAttempt(1, PaymentStatus.CREATED.name()));
 
         return mapToResponse(paymentRepository.save(payment));
@@ -98,10 +99,31 @@ public class PaymentService {
             );
         }
 
-        // Keep the current attempt status synchronized with payment status.
         payment.updateLatestAttemptStatus(newStatus.name());
 
         return mapToResponse(payment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentAttemptResponse> getPaymentAttempts(String paymentReference) {
+
+        Payment payment = paymentRepository
+                .findByPaymentReference(paymentReference)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Payment not found with reference: " + paymentReference
+                ));
+
+        return payment.getAttempts()
+                .stream()
+                .sorted(Comparator.comparing(PaymentAttempt::getAttemptNumber))
+                .map(attempt -> new PaymentAttemptResponse(
+                        payment.getPaymentReference(),
+                        attempt.getAttemptNumber(),
+                        attempt.getStatus(),
+                        attempt.getAttemptedAt()
+                ))
+                .toList();
     }
 
     @Transactional(readOnly = true)

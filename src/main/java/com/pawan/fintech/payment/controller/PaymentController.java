@@ -3,6 +3,7 @@ package com.pawan.fintech.payment.controller;
 import com.pawan.fintech.common.ApiResponse;
 import com.pawan.fintech.payment.dto.request.CreatePaymentRequest;
 import com.pawan.fintech.payment.dto.request.UpdatePaymentStatusRequest;
+import com.pawan.fintech.payment.dto.response.PaymentAttemptResponse;
 import com.pawan.fintech.payment.dto.response.PaymentResponse;
 import com.pawan.fintech.payment.service.PaymentService;
 import jakarta.validation.Valid;
@@ -73,6 +74,18 @@ public class PaymentController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("Payment retrieved successfully", payment)
+        );
+    }
+
+    @GetMapping("/reference/{paymentReference}/attempts")
+    public ResponseEntity<ApiResponse<List<PaymentAttemptResponse>>> getPaymentAttempts(
+            @PathVariable String paymentReference
+    ) {
+        List<PaymentAttemptResponse> attempts =
+                paymentService.getPaymentAttempts(paymentReference);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Payment attempts retrieved successfully", attempts)
         );
     }
 
